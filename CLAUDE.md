@@ -61,6 +61,13 @@ API n8n : `$N8N_URL/api/v1/` avec header `X-N8N-API-KEY`
 - Logs : pas de données personnelles
 - HTTPS obligatoire en production
 
+## Anti-WAF — Convention pour tout workflow de scraping
+Tout workflow n8n ou script qui scrape un site externe DOIT implémenter :
+1. **Cookie warmup** — GET homepage avant tout scraping (établit la session)
+2. **Headers réalistes** — User-Agent Chrome récent + Sec-Fetch-* + Referer cohérent
+3. **Délais entre requêtes** — 3-5s minimum entre chaque page (Wait node ou sleep)
+4. **Retry avec backoff** — retryOnFail=true, maxTries=3, waitBetweenTries=5000-10000ms
+
 ## Comment travailler
 Tu reçois des briefs de Marie-Claire (CPTO). Chaque brief contient :
 - Objectif clair
