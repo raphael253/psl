@@ -5,10 +5,6 @@ jobs:
 deploy:
 runs-on: ubuntu-latest
 steps:
-- name: Ensure SSH agent
-uses: webfactory/ssh-agent@v0.6.0
-with:
-ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 - name: Write N8N key on server and restart n8n
 uses: appleboy/ssh-action@v0.1.7
 with:
