@@ -15,23 +15,15 @@ jobs:
           SERVER_USER: "${{ secrets.SERVER_USER }}"
           SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
         run: |
+          HOST=$(printf '%s' "$SERVER_HOST" | tr -d '[:space:]')
+          PORT=$(printf '%s' "$SERVER_SSH_PORT" | tr -d '[:space:]')
+          USER_NAME=$(printf '%s' "$SERVER_USER" | tr -d '[:space:]')
+
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
 
-          HOST=$(echo "$SERVER_HOST" | tr -d '[:space:]')
-          PORT=$(echo "$SERVER_SSH_PORT" | tr -d '[:space:]')
-          USER=$(echo "$SERVER_USER" | tr -d '[:space:]')
-
-          cat > ~/.ssh/config << EOF
-          Host target
-            HostName ${HOST}
-            User ${USER}
-            Port ${PORT}
-            IdentityFile ~/.ssh/id_deploy
-            StrictHostKeyChecking accept-new
-          EOF
-
+          printf 'Host target\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n' "$HOST" "$USER_NAME" "$PORT" > ~/.ssh/config
           chmod 600 ~/.ssh/config
 
       - name: Deploy key and restart n8n
@@ -39,11 +31,6 @@ jobs:
           N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
         run: |
           ssh target "mkdir -p /etc/secrets"
-
-          ssh target "cat > /etc/secrets/n8n_api_key << 'EOFKEY'
-          ${N8N_API_KEY}
-          EOFKEY"
-
+          printf '%s\n' "$N8N_API_KEY" | ssh target "cat > /etc/secrets/n8n_api_key"
           ssh target "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
-
           ssh target "cd /docker/n8n && docker compose down && docker compose up -d"
