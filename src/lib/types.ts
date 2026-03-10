@@ -67,5 +67,6 @@ export interface SearchParams {
   speaker?: string
   from?: string
   to?: string
-  type?: AssertionType
+  assertion?: AssertionType
+  source_type?: SourceType
 }

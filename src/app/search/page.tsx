@@ -9,7 +9,7 @@ interface PageProps {
   searchParams: Promise<SearchParams>
 }
 
-async function Results({ q, speaker, from, to }: SearchParams) {
+async function Results({ q, speaker, from, to, assertion, source_type }: SearchParams) {
   const supabase = await createClient()
 
   let query = supabase
@@ -56,6 +56,16 @@ async function Results({ q, speaker, from, to }: SearchParams) {
 
   if (to) {
     query = query.lte('statement_date', to)
+  }
+
+  if (assertion) {
+    query = query.eq('assertion_type', assertion)
+  }
+
+  if (source_type) {
+    // filter by joined source field -> use RPC-style filter on relationship
+    // Supabase allows filtering on foreign columns via dot notation if selected; here we use the source relationship
+    query = query.eq('source->>source_type', source_type)
   }
 
   const { data: statements, error } = await query

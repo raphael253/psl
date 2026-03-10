@@ -39,12 +39,14 @@ export function SearchFilters({ speakers, currentSpeaker, currentFrom, currentTo
     params.delete('speaker')
     params.delete('from')
     params.delete('to')
+    params.delete('assertion')
+    params.delete('source_type')
     startTransition(() => {
       router.push(`/search?${params.toString()}`)
     })
   }
 
-  const hasFilters = currentSpeaker || currentFrom || currentTo
+  const hasFilters = currentSpeaker || currentFrom || currentTo || searchParams.get('assertion') || searchParams.get('source_type')
 
   return (
     <div className="space-y-5 text-sm">
@@ -107,6 +109,92 @@ export function SearchFilters({ speakers, currentSpeaker, currentFrom, currentTo
               {s.full_name}
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Nouveau: Type de déclaration */}
+      <div>
+        <p className="mb-2 font-semibold text-slate-700">Type de déclaration</p>
+        <div className="space-y-1">
+          <button
+            onClick={() => updateFilter('assertion', null)}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              !searchParams.get('assertion') ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Tous les types
+          </button>
+          <button
+            onClick={() => updateFilter('assertion', 'fact_claim')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('assertion') === 'fact_claim' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Affirmation factuelle
+          </button>
+          <button
+            onClick={() => updateFilter('assertion', 'promise')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('assertion') === 'promise' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Engagement / promesse
+          </button>
+          <button
+            onClick={() => updateFilter('assertion', 'other')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('assertion') === 'other' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Autre déclaration
+          </button>
+        </div>
+      </div>
+
+      {/* Nouveau: Type de source */}
+      <div>
+        <p className="mb-2 font-semibold text-slate-700">Type de source</p>
+        <div className="space-y-1">
+          <button
+            onClick={() => updateFilter('source_type', null)}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              !searchParams.get('source_type') ? 'bg-slate-100 font-medium text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Toutes les sources
+          </button>
+          <button
+            onClick={() => updateFilter('source_type', 'official')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('source_type') === 'official' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Source primaire officielle
+          </button>
+          <button
+            onClick={() => updateFilter('source_type', 'media')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('source_type') === 'media' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Média avec citation
+          </button>
+          <button
+            onClick={() => updateFilter('source_type', 'secondary')}
+            disabled={isPending}
+            className={`w-full rounded px-2 py-1 text-left text-[13px] transition-colors ${
+              searchParams.get('source_type') === 'secondary' ? 'bg-blue-50 font-medium text-blue-900' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            Source secondaire
+          </button>
         </div>
       </div>
 

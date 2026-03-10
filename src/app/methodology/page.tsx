@@ -34,6 +34,7 @@ export default function MethodologyPage() {
 
       <section className="mb-8">
         <h2 className="text-lg font-semibold text-slate-800 mb-3">3. Types d&apos;assertion</h2>
+        <p className="text-sm text-slate-600 mb-3">PSL fournit des filtres pour parcourir les statements par type d&apos;assertion (par défaut : tous les types).</p>
         <div className="space-y-3 text-sm">
           <div className="rounded border border-blue-100 bg-blue-50 px-3 py-2">
             <p className="font-semibold text-blue-800">Affirmation factuelle (fact_claim)</p>
