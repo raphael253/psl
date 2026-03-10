@@ -8,29 +8,30 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup SSH
+      - name: Setup SSH key
         env:
           SSH_PRIVATE_KEY: "${{ secrets.SERVER_SSH_KEY }}"
-          SERVER_HOST: "${{ secrets.SERVER_HOST }}"
-          SERVER_USER: "${{ secrets.SERVER_USER }}"
-          SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
         run: |
-          HOST=$(printf '%s' "$SERVER_HOST" | tr -d '[:space:]')
-          PORT=$(printf '%s' "$SERVER_SSH_PORT" | tr -d '[:space:]')
-          USER_NAME=$(printf '%s' "$SERVER_USER" | tr -d '[:space:]')
-
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-
-          printf 'Host target\n  HostName %s\n  User %s\n  Port %s\n  IdentityFile ~/.ssh/id_deploy\n  StrictHostKeyChecking accept-new\n' "$HOST" "$USER_NAME" "$PORT" > ~/.ssh/config
-          chmod 600 ~/.ssh/config
+          ssh-keyscan -p ${{ secrets.SERVER_SSH_PORT }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
 
       - name: Deploy key and restart n8n
         env:
           N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
+          SERVER_HOST: "${{ secrets.SERVER_HOST }}"
+          SERVER_USER: "${{ secrets.SERVER_USER }}"
+          SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
         run: |
-          ssh target "mkdir -p /etc/secrets"
-          printf '%s\n' "$N8N_API_KEY" | ssh target "cat > /etc/secrets/n8n_api_key"
-          ssh target "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
-          ssh target "cd /docker/n8n && docker compose down && docker compose up -d"
+          SSH_CMD="ssh -i ~/.ssh/id_deploy -p ${SERVER_SSH_PORT} -o StrictHostKeyChecking=accept-new ${SERVER_USER}@${SERVER_HOST}"
+
+          ${SSH_CMD} "mkdir -p /etc/secrets"
+
+          ${SSH_CMD} "cat > /etc/secrets/n8n_api_key << 'EOFKEY'
+          ${N8N_API_KEY}
+          EOFKEY"
+
+          ${SSH_CMD} "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
+
+          ${SSH_CMD} "cd /docker/n8n && docker compose down && docker compose up -d"
