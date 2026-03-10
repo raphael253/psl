@@ -1,33 +1,47 @@
-name: Deploy n8n API key
+name: Deploy n8n API Key
+
 on:
-workflow_dispatch: {}
+  workflow_dispatch:
+
 jobs:
-deploy:
-runs-on: ubuntu-latest
-steps:
-- name: Setup SSH key
-env:
-SSH_PRIVATE_KEY: "${{ secrets.SERVER_SSH_KEY }}"
-run: |
-mkdir -p ~/.ssh
-printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
-chmod 600 ~/.ssh/id_deploy
-- name: Deploy key and restart n8n
-env:
-N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
-SERVER_HOST: "${{ secrets.SERVER_HOST }}"
-SERVER_USER: "${{ secrets.SERVER_USER }}"
-SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
-run: |
-# fallback to port 22 if secret is empty
-PORT="${SERVER_SSH_PORT}"
-if [ -z "$PORT" ]; then
-PORT=22
-fi
-SSH_CMD="ssh -i ~/.ssh/id_deploy -p ${PORT} -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_HOST}"
-# create secrets dir
-${SSH_CMD} "sudo mkdir -p /etc/secrets"
-# write key safely
-printf '%s\n' "${N8N_API_KEY}" | ${SSH_CMD} "sudo tee /etc/secrets/n8n_api_key > /dev/null"
-${SSH_CMD} "sudo chmod 600 /etc/secrets/n8n_api_key && sudo chown root:root /etc/secrets/n8n_api_key"
-${SSH_CMD} "cd /docker/n8n && sudo docker compose down || true && sudo docker compose up -d"
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Setup SSH key
+        env:
+          SSH_PRIVATE_KEY: "${{ secrets.SERVER_SSH_KEY }}"
+          SERVER_HOST: "${{ secrets.SERVER_HOST }}"
+          SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
+        run: |
+          # Trim whitespace defensif
+          HOST=$(echo "$SERVER_HOST" | tr -d '[:space:]')
+          PORT=$(echo "$SERVER_SSH_PORT" | tr -d '[:space:]')
+
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Deploy key and restart n8n
+        env:
+          N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
+          SERVER_HOST: "${{ secrets.SERVER_HOST }}"
+          SERVER_USER: "${{ secrets.SERVER_USER }}"
+          SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
+        run: |
+          HOST=$(echo "$SERVER_HOST" | tr -d '[:space:]')
+          PORT=$(echo "$SERVER_SSH_PORT" | tr -d '[:space:]')
+          USER=$(echo "$SERVER_USER" | tr -d '[:space:]')
+
+          SSH_CMD="ssh -i ~/.ssh/id_deploy -p ${PORT} -o StrictHostKeyChecking=accept-new ${USER}@${HOST}"
+
+          ${SSH_CMD} "mkdir -p /etc/secrets"
+
+          ${SSH_CMD} "cat > /etc/secrets/n8n_api_key << 'EOFKEY'
+          ${N8N_API_KEY}
+          EOFKEY"
+
+          ${SSH_CMD} "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
+
+          ${SSH_CMD} "cd /docker/n8n && docker compose down && docker compose up -d"
