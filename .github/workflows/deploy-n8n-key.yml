@@ -7,31 +7,27 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    env:
+      HOST: "187.124.22.137"
+      PORT: "22"
+      USER_NAME: "root"
+
     steps:
-      - name: Setup SSH key
+      - name: Deploy
         env:
           SSH_PRIVATE_KEY: "${{ secrets.SERVER_SSH_KEY }}"
+          N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
         run: |
           mkdir -p ~/.ssh
           printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/id_deploy
           chmod 600 ~/.ssh/id_deploy
-          ssh-keyscan -p ${{ secrets.SERVER_SSH_PORT }} ${{ secrets.SERVER_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          ssh-keyscan -p "$PORT" "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      - name: Deploy key and restart n8n
-        env:
-          N8N_API_KEY: "${{ secrets.N8N_API_KEY }}"
-          SERVER_HOST: "${{ secrets.SERVER_HOST }}"
-          SERVER_USER: "${{ secrets.SERVER_USER }}"
-          SERVER_SSH_PORT: "${{ secrets.SERVER_SSH_PORT }}"
-        run: |
-          SSH_CMD="ssh -i ~/.ssh/id_deploy -p ${SERVER_SSH_PORT} -o StrictHostKeyChecking=accept-new ${SERVER_USER}@${SERVER_HOST}"
+          do_ssh() {
+            ssh -i ~/.ssh/id_deploy -p "$PORT" -o StrictHostKeyChecking=accept-new "${USER_NAME}@${HOST}" "$@"
+          }
 
-          ${SSH_CMD} "mkdir -p /etc/secrets"
-
-          ${SSH_CMD} "cat > /etc/secrets/n8n_api_key << 'EOFKEY'
-          ${N8N_API_KEY}
-          EOFKEY"
-
-          ${SSH_CMD} "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
-
-          ${SSH_CMD} "cd /docker/n8n && docker compose down && docker compose up -d"
+          do_ssh "mkdir -p /etc/secrets"
+          printf '%s\n' "$N8N_API_KEY" | do_ssh "cat > /etc/secrets/n8n_api_key"
+          do_ssh "chmod 600 /etc/secrets/n8n_api_key && chown root:root /etc/secrets/n8n_api_key"
+          do_ssh "cd /docker/n8n && docker compose down && docker compose up -d"
